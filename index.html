@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boggle BD - Offline Word Hunt</title>
+<meta name="description" content="Offline bilingual EN/Bangla Boggle-style word-hunt game. 4x4 and 5x5 boards, 3-minute timer, solver shows the words you missed. No network needed.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-row">
+    <div>
+      <h1>Boggle BD</h1>
+      <p class="tagline" id="tagline" data-i18n="tagline">Offline word-hunt game</p>
+      <p class="tagline-bn" lang="bn">&#2437;&#2475;&#2482;&#2494;&#2439;&#2472; &#2486;&#2476;&#2509;&#2470; &#2486;&#2495;&#2453;&#2494;&#2480; &#2454;&#2503;&#2482;&#2494;</p>
+    </div>
+    <div class="header-actions">
+      <button id="langBtn" class="btn btn-ghost" type="button">&#2476;&#2494;&#2434;&#2482;&#2494;</button>
+      <button id="muteBtn" class="btn btn-ghost" type="button">Mute</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- Setup panel -->
+  <section id="setupPanel" class="card" aria-labelledby="setupTitle">
+    <h2 id="setupTitle" data-i18n="setupTitle">Set up your game</h2>
+    <div class="setup-grid">
+      <fieldset>
+        <legend data-i18n="boardSize">Board size</legend>
+        <label class="radio"><input type="radio" name="size" value="4" checked> 4 &times; 4</label>
+        <label class="radio"><input type="radio" name="size" value="5"> 5 &times; 5</label>
+      </fieldset>
+      <fieldset>
+        <legend data-i18n="gameTime">Game time</legend>
+        <label class="radio"><input type="radio" name="duration" value="120"> <span data-i18n="minutes2">2 min</span></label>
+        <label class="radio"><input type="radio" name="duration" value="180" checked> <span data-i18n="minutes3">3 min</span></label>
+        <label class="radio"><input type="radio" name="duration" value="300"> <span data-i18n="minutes5">5 min</span></label>
+      </fieldset>
+    </div>
+    <button id="startBtn" class="btn btn-primary btn-big" type="button" data-i18n="start">Start</button>
+    <p class="hint-text" data-i18n="tapToStart">Press Start below to begin.</p>
+    <div class="best-line"><span data-i18n="best">Best</span>: <strong id="setupBest">4&times;4: &mdash; &middot; 5&times;5: &mdash;</strong></div>
+  </section>
+
+  <!-- Game panel -->
+  <section id="gamePanel" class="card" hidden aria-label="Game">
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-label" data-i18n="score">Score</span><strong id="scoreVal">0</strong></div>
+      <div class="stat"><span class="stat-label" data-i18n="timeLeft">Time left</span><strong id="timeVal">3:00</strong></div>
+      <div class="stat"><span class="stat-label" data-i18n="wordsFound">Words found</span><strong id="wordsVal">0</strong></div>
+      <div class="stat"><span class="stat-label" data-i18n="best">Best</span><strong id="bestVal">&mdash;</strong></div>
+    </div>
+
+    <div id="boardWrap">
+      <div id="board" class="board" role="grid" aria-label="Letter board"></div>
+      <div id="pausedCover" class="paused-cover" hidden>
+        <p class="paused-title" data-i18n="paused">Paused</p>
+        <p data-i18n="pausedNote">The board is hidden &mdash; press Resume to keep playing.</p>
+      </div>
+    </div>
+
+    <div class="word-tray">
+      <div class="current-word-row">
+        <span class="tray-label" data-i18n="currentWord">Current word</span>
+        <strong id="currentWord" class="current-word" aria-live="polite">&mdash;</strong>
+        <span id="scorePreview" class="score-preview"></span>
+      </div>
+      <p id="gameError" class="error" role="alert" hidden></p>
+      <p id="hintLine" class="hint-line" hidden></p>
+      <div class="tray-buttons">
+        <button id="submitBtn" class="btn btn-primary" type="button" data-i18n="submit">Submit</button>
+        <button id="undoBtn" class="btn" type="button" data-i18n="undo">Undo</button>
+        <button id="clearBtn" class="btn" type="button" data-i18n="clear">Clear</button>
+        <button id="hintBtn" class="btn" type="button"><span data-i18n="hint">Hint</span> <span id="hintsLeft" class="hints-left"></span></button>
+        <button id="pauseBtn" class="btn" type="button" data-i18n="pause">Pause</button>
+        <button id="newGameBtn" class="btn btn-ghost" type="button" data-i18n="newGame">New Game</button>
+      </div>
+    </div>
+
+    <div class="found-wrap">
+      <h2 data-i18n="foundWords">Found words</h2>
+      <p id="foundEmpty" class="empty" data-i18n="noWordsYet">No words found yet &mdash; tap tiles to build a word.</p>
+      <ul id="foundList" class="word-list"></ul>
+    </div>
+  </section>
+
+  <!-- Results overlay -->
+  <section id="resultsPanel" class="card" hidden aria-labelledby="timeUpTitle">
+    <h2 id="timeUpTitle" data-i18n="timeUp">Time's up!</h2>
+    <p id="newBestBadge" class="new-best" hidden data-i18n="newBest">New best score!</p>
+    <div class="results-stats">
+      <div class="stat"><span class="stat-label" data-i18n="yourScore">Your score</span><strong id="finalScore">0</strong></div>
+      <div class="stat"><span class="stat-label" data-i18n="wordsFound">Words found</span><strong id="finalWords">0</strong></div>
+      <div class="stat"><span class="stat-label" data-i18n="longestWord">Longest word</span><strong id="finalLongest">&mdash;</strong></div>
+      <div class="stat"><span class="stat-label" data-i18n="possibleWords">Possible words on board</span><strong id="finalPossible">0</strong></div>
+    </div>
+    <h3 data-i18n="foundWords">Found words</h3>
+    <ul id="resultsFound" class="word-list"></ul>
+    <h3 data-i18n="missedWords">Words you missed</h3>
+    <p id="missedNote" class="muted"></p>
+    <ul id="missedList" class="word-list missed"></ul>
+    <button id="playAgainBtn" class="btn btn-primary btn-big" type="button" data-i18n="playAgain">Play again</button>
+  </section>
+
+  <!-- History -->
+  <section class="card" aria-labelledby="historyTitle">
+    <h2 id="historyTitle" data-i18n="history">Recent games</h2>
+    <p id="historyEmpty" class="empty" data-i18n="noHistory">No finished games yet.</p>
+    <table id="historyTable" class="history-table" hidden>
+      <thead>
+        <tr>
+          <th data-i18n="date">Date</th>
+          <th data-i18n="size">Size</th>
+          <th data-i18n="score">Score</th>
+          <th data-i18n="words">Words</th>
+          <th data-i18n="bestWord">Best word</th>
+        </tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </section>
+
+  <!-- How to play -->
+  <section class="card" aria-labelledby="howTitle">
+    <h2 id="howTitle" data-i18n="howToPlay">How to play</h2>
+    <ol class="how-list">
+      <li data-i18n="howTo1">Tap adjacent tiles (diagonals count) to build a word.</li>
+      <li data-i18n="howTo2">Words must be at least 3 letters long.</li>
+      <li data-i18n="howTo3">A Q tile counts as &ldquo;Qu&rdquo;.</li>
+      <li data-i18n="howTo4">Longer words = more points: 3&ndash;4 letters = 1, 5 = 2, 6 = 3, 7 = 5, 8+ = 11.</li>
+      <li data-i18n="howTo5">When time runs out, see the words you missed.</li>
+    </ol>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>Offline word game. Not affiliated with Boggle or Hasbro. Dictionary: the 20,000 most-common English words (first20hours/google-10000-english), filtered to 3&ndash;8 letters. Board letters are drawn from English letter frequencies, not the licensed Boggle dice set. All data stays in your browser (localStorage).</p>
+  </div>
+</footer>
+
+<script src="js/words-a.js"></script>
+<script src="js/words-b.js"></script>
+<script src="js/words.js"></script>
+<script src="js/logic.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
